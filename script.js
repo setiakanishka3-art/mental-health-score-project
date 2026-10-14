@@ -1,7 +1,10 @@
 (() => {
   "use strict";
 
-  const API_BASE = "http://127.0.0.1:2200";
+  const isLocalStaticServer =
+    window.location.port === "5500" &&
+    ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  const API_BASE = isLocalStaticServer ? "http://127.0.0.1:2200" : window.location.origin;
 
   const form = document.getElementById("predict-form");
   const submitBtn = document.getElementById("submit-btn");
@@ -19,8 +22,26 @@
   const gaugeFill = document.getElementById("gauge-fill");
   const errorLabelEl = document.getElementById("error-label");
   const errorCopyEl = document.getElementById("error-copy");
+  const lifestyleChart = document.getElementById("lifestyle-chart");
+  const reportedFacts = document.getElementById("reported-facts");
+  const predictionChart = document.getElementById("prediction-chart");
+  const wellnessSuggestions = document.getElementById("wellness-suggestions");
+  const modelComparisonBody = document.getElementById("model-comparison-body");
+  const wellnessPlan = document.getElementById("wellness-plan");
+  const refreshPlanBtn = document.getElementById("refresh-plan-btn");
+  const planProgress = document.getElementById("plan-progress");
+  const planProgressCount = document.getElementById("plan-progress-count");
+  const planProgressPercent = document.getElementById("plan-progress-percent");
+  const planLists = {
+    morning: document.getElementById("plan-morning"),
+    afternoon: document.getElementById("plan-afternoon"),
+    evening: document.getElementById("plan-evening"),
+  };
 
   const GAUGE_ARC_LENGTH = 314; // approx pi * r(100)
+  const predictionHistory = [];
+  let currentPlanInputs = null;
+  let planVersion = 0;
 
   // ---------------------------------------------------------
   // Draw tick marks on both gauges (0..10, every 2 units)
@@ -95,21 +116,23 @@
     const errors = [];
 
     const numericChecks = [
-      ["age", 10, 100],
-      ["avg_daily_usage_hours", 0, 24],
-      ["daily_unlocks", 0, Infinity],
-      ["study_hours", 0, 24],
-      ["physical_activity_hours", 0, 24],
-      ["sleep_hours_per_night", 0, 24],
+      ["age", 10, 100, true],
+      ["avg_daily_usage_hours", 0, 24, false],
+      ["daily_unlocks", 0, 273, true],
+      ["study_hours", 0, 24, false],
+      ["physical_activity_hours", 0, 24, false],
+      ["sleep_hours_per_night", 0, 24, false],
     ];
 
-    numericChecks.forEach(([key, min, max]) => {
+    numericChecks.forEach(([key, min, max, mustBeInteger]) => {
       const input = document.getElementById(key);
       const val = payload[key];
-      if (val === "" || val === null || Number.isNaN(val)) {
+      if (!Number.isFinite(val)) {
         errors.push([input, "This field is required."]);
       } else if (val < min || val > max) {
-        errors.push([input, `Must be between ${min} and ${max === Infinity ? "0+" : max}.`]);
+        errors.push([input, `Must be between ${min} and ${max}.`]);
+      } else if (mustBeInteger && !Number.isInteger(val)) {
+        errors.push([input, "Enter a whole number."]);
       }
     });
 
@@ -133,14 +156,14 @@
   function collectPayload() {
     const fd = new FormData(form);
     return {
-      age: fd.get("age") === "" ? NaN : parseInt(fd.get("age"), 10),
+      age: fd.get("age") === "" ? NaN : Number(fd.get("age")),
       gender: fd.get("gender") || "",
       country: (fd.get("country") || "").trim(),
       academic_level: fd.get("academic_level") || "",
       most_used_platform: fd.get("most_used_platform") || "",
       purpose_of_use: fd.get("purpose_of_use") || "",
       avg_daily_usage_hours: fd.get("avg_daily_usage_hours") === "" ? NaN : parseFloat(fd.get("avg_daily_usage_hours")),
-      daily_unlocks: fd.get("daily_unlocks") === "" ? NaN : parseInt(fd.get("daily_unlocks"), 10),
+      daily_unlocks: fd.get("daily_unlocks") === "" ? NaN : Number(fd.get("daily_unlocks")),
       study_hours: fd.get("study_hours") === "" ? NaN : parseFloat(fd.get("study_hours")),
       physical_activity_hours: fd.get("physical_activity_hours") === "" ? NaN : parseFloat(fd.get("physical_activity_hours")),
       sleep_hours_per_night: fd.get("sleep_hours_per_night") === "" ? NaN : parseFloat(fd.get("sleep_hours_per_night")),
@@ -161,32 +184,12 @@
     submitBtn.classList.toggle("loading", isSubmitting);
   }
 
-  function bandFor(score) {
-    if (score < 4) {
-      return {
-        label: "Signal: strained",
-        context: "Your responses suggest elevated strain right now. Small shifts in sleep or screen time can go a long way.",
-      };
-    }
-    if (score < 7) {
-      return {
-        label: "Signal: balanced",
-        context: "Your rhythm looks fairly steady, with some room to recover and reset.",
-      };
-    }
-    return {
-      label: "Signal: strong",
-      context: "Your habits point to a well-supported, resilient baseline. Keep it up.",
-    };
-  }
-
   function renderResult(score) {
     const clamped = Math.max(0, Math.min(10, score));
-    const { label, context } = bandFor(clamped);
 
     scoreNumberEl.textContent = score.toFixed(2);
-    scoreBandEl.textContent = label;
-    scoreContextEl.textContent = context;
+    scoreBandEl.textContent = "Predicted score · informational only";
+    scoreContextEl.textContent = "This dataset-derived score is not a clinical measure or diagnosis.";
 
     // reset then animate the arc fill on next frame
     gaugeFill.style.transition = "none";
@@ -199,6 +202,279 @@
 
     showState("result");
   }
+
+  function addBarRow(container, label, value, maximum, suffix = "h") {
+    const row = document.createElement("div");
+    row.className = "bar-row";
+
+    const name = document.createElement("span");
+    name.className = "bar-name";
+    name.textContent = label;
+
+    const track = document.createElement("div");
+    track.className = "bar-track";
+    track.setAttribute("role", "img");
+    track.setAttribute("aria-label", `${label}: ${value}${suffix}`);
+
+    const fill = document.createElement("span");
+    fill.className = "bar-fill";
+    fill.style.width = `${Math.max(0, Math.min(100, (value / maximum) * 100))}%`;
+    track.appendChild(fill);
+
+    const amount = document.createElement("span");
+    amount.className = "bar-value";
+    amount.textContent = `${value}${suffix}`;
+
+    row.append(name, track, amount);
+    container.appendChild(row);
+  }
+
+  function renderLifestyle(payload) {
+    lifestyleChart.replaceChildren();
+    [
+      ["Screen time", payload.avg_daily_usage_hours],
+      ["Study", payload.study_hours],
+      ["Movement", payload.physical_activity_hours],
+      ["Sleep", payload.sleep_hours_per_night],
+    ].forEach(([label, value]) => addBarRow(lifestyleChart, label, value, 24));
+
+    reportedFacts.replaceChildren();
+    const unlocks = document.createElement("span");
+    unlocks.textContent = `${payload.daily_unlocks} phone unlocks / day`;
+    const stress = document.createElement("span");
+    stress.textContent = `Self-reported stress: ${payload.stress_level}`;
+    reportedFacts.append(unlocks, stress);
+  }
+
+  function renderPredictionHistory(score) {
+    predictionHistory.push(score);
+    if (predictionHistory.length > 6) predictionHistory.shift();
+    predictionChart.replaceChildren();
+    predictionHistory.forEach((value, index) => {
+      addBarRow(predictionChart, `Run ${index + 1}`, value, 10, "/10");
+    });
+  }
+
+  function renderWellnessSuggestions(payload) {
+    const suggestions = [];
+    if (payload.sleep_hours_per_night < 7) {
+      suggestions.push("You reported less than 7 hours of sleep. A steady sleep and wake time, with a calm wind-down, may support rest.");
+    }
+    if (payload.physical_activity_hours < 0.5) {
+      suggestions.push("If it feels comfortable for you, consider adding a short walk or gentle stretch break to your day.");
+    }
+    if (payload.avg_daily_usage_hours > 6) {
+      suggestions.push("For long screen sessions, regular eye and movement breaks can make time online more comfortable.");
+    }
+    if (["High", "Very High"].includes(payload.stress_level)) {
+      suggestions.push("When stress feels high, a brief pause, slow breathing, or talking with someone supportive may help. Campus support is an option if stress persists.");
+    }
+    if (suggestions.length === 0) {
+      suggestions.push("Keep noticing how your daily routines feel, and make small changes that suit your circumstances.");
+    }
+    wellnessSuggestions.replaceChildren(...suggestions.map((suggestion) => {
+      const item = document.createElement("li");
+      item.textContent = suggestion;
+      return item;
+    }));
+  }
+
+  function makeDailyPlan(payload, version) {
+    const choice = (options) => options[version % options.length];
+    const sleep = Number(payload.sleep_hours_per_night).toFixed(1);
+    const activity = Number(payload.physical_activity_hours).toFixed(1);
+    const screenTime = Number(payload.avg_daily_usage_hours).toFixed(1);
+    const study = Number(payload.study_hours).toFixed(1);
+    const highStress = ["High", "Very High"].includes(payload.stress_level);
+
+    return [
+      {
+        period: "morning",
+        icon: "↗",
+        category: "Movement",
+        title: choice([
+          "Start with movement you enjoy",
+          "Take a gentle movement break",
+          "Step outside for a short walk",
+        ]),
+        action: choice([
+          "Try a comfortable 10-minute walk, stretch, or yoga session; change the activity or duration to suit your day.",
+          "Choose a short walk or a few easy stretches before settling into study.",
+          "If it works for you, get some daylight with an easy walk and keep the pace comfortable.",
+        ]),
+        reason: `You reported ${activity} hours of physical activity per day. This is a flexible way to build movement around your current routine.`,
+      },
+      {
+        period: "morning",
+        icon: "♡",
+        category: "Social connection",
+        title: choice([
+          "Make a small supportive connection",
+          "Share a moment with someone you trust",
+          "Send a low-pressure check-in",
+        ]),
+        action: choice([
+          "Send a short message or plan a brief chat with someone supportive, whenever it fits.",
+          "Have breakfast or a quick catch-up with a friend, family member, or classmate if you feel like it.",
+          "Let someone you trust know how your day is starting; a short message is enough.",
+        ]),
+        reason: `You reported ${payload.stress_level.toLowerCase()} stress. Supportive contact is one optional way to feel connected during the day.`,
+      },
+      {
+        period: "afternoon",
+        icon: "◉",
+        category: "Digital well-being",
+        title: choice([
+          "Create one screen-free pause",
+          "Give your attention a short reset",
+          "Take a break from notifications",
+        ]),
+        action: choice([
+          "During one study block, place your phone out of reach and take a 5-minute screen-free break afterward.",
+          "Pause between online tasks: look away from the screen, stretch, and check notifications at a chosen time.",
+          "Mute non-essential notifications for one activity, then take a brief break away from your screen.",
+        ]),
+        reason: `You reported ${screenTime} hours of daily social-platform use and ${payload.daily_unlocks} phone unlocks. This plan adds a small, optional pause without judging your usage.`,
+      },
+      {
+        period: "afternoon",
+        icon: "▤",
+        category: "Study-life balance",
+        title: choice([
+          "Give one study session a clear shape",
+          "Build a pause into study time",
+          "Choose a manageable next step",
+        ]),
+        action: choice([
+          "Pick one priority for your next study block, then take a 5-minute stretch or water break before continuing.",
+          "Break a task into a small first step and pause briefly between study sessions; adjust the pace to your workload.",
+          "Set a realistic stopping point for one task and leave a short buffer before your next commitment.",
+        ]),
+        reason: `You entered ${study} study hours per day. A planned pause can help make that schedule feel more manageable.`,
+      },
+      {
+        period: "evening",
+        icon: "⌁",
+        category: "Relaxation",
+        title: highStress ? "Try a brief calming pause" : "Make space to unwind",
+        action: highStress
+          ? choice([
+              "Try 3 minutes of slow, comfortable breathing or a quiet grounding exercise; stop if it feels uncomfortable.",
+              "Take a 5-minute pause for gentle breathing, calming music, or simply sitting somewhere quiet.",
+              "If helpful, follow a short guided meditation or do a few slow breaths before your evening routine.",
+            ])
+          : choice([
+              "Take 5 minutes for a quiet activity you enjoy, such as music, gentle stretching, or slow breathing.",
+              "Create a short transition from study to personal time with a walk, a warm drink, or a few easy breaths.",
+              "Choose a low-pressure activity that helps you settle before the rest of your evening.",
+            ]),
+        reason: `You selected ${payload.stress_level} for perceived stress, so this offers a flexible way to pause at the end of the day.`,
+      },
+      {
+        period: "evening",
+        icon: "☾",
+        category: "Sleep routine",
+        title: choice([
+          "Keep your sleep schedule steady",
+          "Set up a gentle wind-down",
+          "Make tomorrow's wake-up easier",
+        ]),
+        action: choice([
+          "Choose a bedtime that fits your commitments and keep tomorrow's wake-up time close to your usual schedule.",
+          "Set a 10-minute wind-down reminder: dim lights, put away study materials, and follow a routine you can repeat.",
+          "Before bed, prepare one small thing for tomorrow and give yourself a calm, screen-light wind-down.",
+        ]),
+        reason: `You reported ${sleep} hours of sleep per night. This suggestion uses your own report to focus on a consistent, flexible schedule rather than prescribing a target.`,
+      },
+    ];
+  }
+
+  function updatePlanProgress() {
+    const completed = document.querySelectorAll("#wellness-plan input[type='checkbox']:checked").length;
+    const total = 6;
+    planProgress.value = completed;
+    planProgressCount.textContent = `${completed} of ${total} activities completed`;
+    planProgressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
+  }
+
+  function renderDailyPlan(payload) {
+    currentPlanInputs = { ...payload };
+    const activities = makeDailyPlan(payload, planVersion);
+    const planNumber = planVersion + 1;
+    planVersion += 1;
+
+    Object.values(planLists).forEach((list) => list.replaceChildren());
+    activities.forEach((activity, index) => {
+      const item = document.createElement("li");
+      const label = document.createElement("label");
+      label.className = "plan-activity-card";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.setAttribute("aria-label", `Mark ${activity.category} activity complete`);
+      checkbox.addEventListener("change", updatePlanProgress);
+
+      const icon = document.createElement("span");
+      icon.className = "plan-activity-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = activity.icon;
+
+      const content = document.createElement("span");
+      content.className = "plan-activity-content";
+      const category = document.createElement("span");
+      category.className = "plan-category";
+      category.textContent = activity.category;
+      const title = document.createElement("strong");
+      title.className = "plan-activity-title";
+      title.textContent = activity.title;
+      const action = document.createElement("span");
+      action.className = "plan-activity-action";
+      action.textContent = activity.action;
+      const reason = document.createElement("span");
+      reason.className = "plan-activity-reason";
+      reason.textContent = activity.reason;
+
+      content.append(category, title, action, reason);
+      label.append(checkbox, icon, content);
+      item.appendChild(label);
+      planLists[activity.period].appendChild(item);
+    });
+
+    wellnessPlan.dataset.planNumber = String(planNumber);
+    wellnessPlan.hidden = false;
+    updatePlanProgress();
+  }
+
+  refreshPlanBtn.addEventListener("click", () => {
+    if (currentPlanInputs) renderDailyPlan(currentPlanInputs);
+  });
+
+  async function loadModelComparison() {
+    try {
+      const response = await fetch(`${API_BASE}/model-comparison`);
+      if (!response.ok) throw new Error("Metrics unavailable");
+      const { models } = await response.json();
+      modelComparisonBody.replaceChildren();
+      if (!models.length) {
+        modelComparisonBody.innerHTML = '<tr><td colspan="4">Run train_model.py to create metrics.</td></tr>';
+        return;
+      }
+      models.forEach((model, index) => {
+        const row = document.createElement("tr");
+        if (index === 0) row.className = "selected-model";
+        [model.Model, Number(model.MAE).toFixed(3), Number(model.RMSE).toFixed(3), Number(model.R2).toFixed(3)].forEach((value) => {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          row.appendChild(cell);
+        });
+        modelComparisonBody.appendChild(row);
+      });
+    } catch {
+      modelComparisonBody.innerHTML = '<tr><td colspan="4">Start the API and reload to view model metrics.</td></tr>';
+    }
+  }
+
+  loadModelComparison();
 
   function renderError(label, copy) {
     errorLabelEl.textContent = label;
@@ -231,6 +507,7 @@
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     clearAllErrors();
+    wellnessPlan.hidden = true;
 
     const payload = collectPayload();
     const clientErrors = validate(payload);
@@ -278,6 +555,10 @@
       }
 
       renderResult(data.predicted_mental_health_score);
+      renderLifestyle(payload);
+      renderPredictionHistory(data.predicted_mental_health_score);
+      renderWellnessSuggestions(payload);
+      renderDailyPlan(payload);
     } catch (err) {
       renderError(
         "Can't reach the server",
@@ -295,10 +576,12 @@
   });
 
   resetBtn.addEventListener("click", () => {
+    wellnessPlan.hidden = true;
     showState("idle");
   });
 
   errorRetryBtn.addEventListener("click", () => {
+    wellnessPlan.hidden = true;
     showState("idle");
   });
 })();

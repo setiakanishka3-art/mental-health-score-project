@@ -138,6 +138,77 @@ body {
   color: #EAF3EE;
 }
 
+.dashboard-panel {
+  grid-column: 2;
+  padding: 26px;
+}
+
+.dashboard-panel h2,
+.dashboard-panel h3 { margin: 0; color: var(--ink); }
+.dashboard-panel h2 { font-family: var(--font-display); font-size: 22px; font-weight: 500; }
+.dashboard-panel h3 { font-size: 13px; font-weight: 700; }
+.dashboard-intro,
+.chart-caption { color: var(--ink-soft); font-size: 12px; margin: 6px 0 0; }
+.dashboard-section { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 18px; }
+.bar-chart { display: grid; gap: 11px; margin-top: 14px; }
+.bar-row { display: grid; grid-template-columns: 76px minmax(40px, 1fr) 48px; align-items: center; gap: 8px; }
+.bar-name, .bar-value { font-family: var(--font-mono); font-size: 10px; color: var(--ink-soft); }
+.bar-value { text-align: right; }
+.bar-track { height: 10px; overflow: hidden; background: var(--paper-deep); border-radius: 2px; }
+.bar-fill { display: block; height: 100%; min-width: 2px; background: var(--pine); transition: width 0.5s ease; }
+.prediction-chart .bar-fill { background: var(--amber); }
+.chart-empty { margin: 0; color: #87938B; font-size: 12px; }
+.reported-facts { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 14px; color: var(--ink-soft); font-size: 11px; }
+.wellness-section ul { display: grid; gap: 9px; margin: 12px 0 0; padding-left: 18px; color: var(--ink-soft); font-size: 12px; }
+.table-scroll { overflow-x: auto; margin-top: 12px; }
+.dashboard-panel table { width: 100%; border-collapse: collapse; text-align: left; font-family: var(--font-mono); font-size: 10px; }
+.dashboard-panel th { color: #77837A; font-weight: 500; }
+.dashboard-panel th, .dashboard-panel td { padding: 8px 5px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.dashboard-panel .selected-model td:first-child { color: var(--pine); font-weight: 700; }
+
+.wellness-plan-panel {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 28px;
+  border-top: 4px solid var(--sage);
+}
+.wellness-plan-panel[hidden] { display: none; }
+.wellness-plan-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.wellness-plan-header h2 { margin: 4px 0 0; color: var(--pine-deep); font-family: var(--font-display); font-size: 24px; font-weight: 500; line-height: 1.2; }
+.plan-kicker { color: var(--pine); font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; }
+.plan-disclaimer { max-width: 620px; margin: 8px 0 0; color: var(--ink-soft); font-size: 12px; }
+.plan-refresh-btn { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--pine-deep); padding: 10px 13px; font: 600 12px var(--font-body); cursor: pointer; }
+.plan-refresh-btn:hover { background: var(--pine-tint); border-color: var(--sage); }
+.plan-refresh-btn span { color: var(--pine); font-size: 17px; line-height: 1; }
+.plan-progress-wrap { display: grid; gap: 8px; }
+.plan-progress-label { display: flex; justify-content: space-between; gap: 12px; color: var(--ink-soft); font-family: var(--font-mono); font-size: 11px; }
+#plan-progress { width: 100%; height: 9px; border: 0; border-radius: 2px; overflow: hidden; appearance: none; accent-color: var(--pine); }
+#plan-progress::-webkit-progress-bar { background: var(--paper-deep); border-radius: 2px; }
+#plan-progress::-webkit-progress-value { background: var(--sage); border-radius: 2px; transition: width 0.25s ease; }
+#plan-progress::-moz-progress-bar { background: var(--sage); border-radius: 2px; }
+.plan-timeline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.plan-period { min-width: 0; }
+.plan-period h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; color: var(--ink); font-size: 13px; }
+.plan-time-icon { display: inline-grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: var(--pine-tint); color: var(--pine); font-size: 14px; }
+.plan-period:nth-child(2) .plan-time-icon { background: #F7EFD9; color: #9A6C12; }
+.plan-period:nth-child(3) .plan-time-icon { background: #E6ECE8; color: var(--pine-deep); }
+.plan-activities { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.plan-activities li { min-width: 0; }
+.plan-activity-card { display: grid; grid-template-columns: 18px 28px minmax(0, 1fr); align-items: start; gap: 10px; height: 100%; padding: 13px 11px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #FBFCFA; cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; }
+.plan-activity-card:hover { border-color: #A9BDAF; }
+.plan-activity-card:focus-within { outline: 2px solid var(--sage); outline-offset: 2px; }
+.plan-activity-card input { width: 17px; height: 17px; margin: 2px 0 0; accent-color: var(--pine); cursor: pointer; }
+.plan-activity-icon { display: inline-grid; width: 26px; height: 26px; place-items: center; border-radius: 6px; background: var(--pine-tint); color: var(--pine); font-size: 14px; }
+.plan-activity-content { display: grid; gap: 5px; min-width: 0; }
+.plan-category { color: var(--pine); font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; }
+.plan-activity-title { color: var(--ink); font-size: 12px; line-height: 1.35; }
+.plan-activity-action, .plan-activity-reason { display: block; color: var(--ink-soft); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.plan-activity-reason { padding-top: 5px; border-top: 1px solid var(--line); color: #748078; }
+.plan-activity-card:has(input:checked) { border-color: var(--sage); background: var(--pine-tint); }
+.plan-activity-card:has(input:checked) .plan-activity-title { color: var(--pine-deep); }
+
 /* =========================================================
    FORM
    ========================================================= */
@@ -357,6 +428,7 @@ input:invalid:not(:placeholder-shown):not(:focus) {
 }
 
 .state { width: 100%; display: flex; flex-direction: column; align-items: center; }
+.state[hidden] { display: none; }
 
 /* gauge */
 .gauge { width: 100%; max-width: 260px; overflow: visible; margin-bottom: 8px; }
@@ -519,6 +591,8 @@ input:invalid:not(:placeholder-shown):not(:focus) {
    ========================================================= */
 @media (max-width: 920px) {
   .layout { grid-template-columns: 1fr; }
+  .wellness-plan-panel { grid-column: 1; }
+  .dashboard-panel { grid-column: 1; }
   .result-panel { position: static; min-height: 420px; }
   .grid-3 { grid-template-columns: repeat(2, 1fr); }
 }
@@ -528,6 +602,10 @@ input:invalid:not(:placeholder-shown):not(:focus) {
   .layout { padding: 0 16px 32px; gap: 16px; }
   .form-panel { padding: 4px 20px 24px; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .wellness-plan-panel { padding: 22px 18px; }
+  .wellness-plan-header { flex-direction: column; }
+  .plan-refresh-btn { align-self: flex-start; }
+  .plan-timeline { grid-template-columns: 1fr; }
   .segmented { grid-template-columns: repeat(2, 1fr); }
   .form-footer { flex-direction: column; align-items: stretch; gap: 14px; }
   .submit-btn { justify-content: center; }

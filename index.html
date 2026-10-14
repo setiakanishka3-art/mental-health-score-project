@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -47,7 +48,7 @@
           </div>
           <div class="field">
             <label for="country">Country</label>
-            <input type="text" id="country" name="country" list="country-list" required placeholder="e.g. India" autocomplete="off" />
+            <input type="text" id="country" name="country" list="country-list" maxlength="80" required placeholder="e.g. India" autocomplete="off" />
             <datalist id="country-list">
               <option value="India"></option>
               <option value="USA"></option>
@@ -118,7 +119,8 @@
           </div>
           <div class="field">
             <label for="daily_unlocks">Daily phone unlocks</label>
-            <input type="number" id="daily_unlocks" name="daily_unlocks" min="0" step="1" required placeholder="e.g. 60" />
+            <input type="number" id="daily_unlocks" name="daily_unlocks" min="0" max="273" step="1" required placeholder="e.g. 60" />
+            <span class="hint">0–273, the dataset's observed maximum</span>
             <span class="error-msg" data-for="daily_unlocks"></span>
           </div>
         </div>
@@ -225,6 +227,87 @@
 
     </div>
   </aside>
+
+  <section class="panel wellness-plan-panel" id="wellness-plan" aria-labelledby="wellness-plan-heading" hidden>
+    <div class="wellness-plan-header">
+      <div>
+        <span class="plan-kicker">A flexible guide for today</span>
+        <h2 id="wellness-plan-heading">Your Personalised Daily Wellness Plan</h2>
+        <p class="plan-disclaimer">Suggestions use the routines you reported, not your predicted score. They are general wellness ideas, not medical advice or a promise of improved health.</p>
+      </div>
+      <button type="button" class="plan-refresh-btn" id="refresh-plan-btn" aria-label="Generate another daily wellness plan" title="Generate another plan">
+        <span aria-hidden="true">↻</span>
+        Another plan
+      </button>
+    </div>
+
+    <div class="plan-progress-wrap">
+      <div class="plan-progress-label">
+        <span id="plan-progress-count">0 of 6 activities completed</span>
+        <span id="plan-progress-percent">0%</span>
+      </div>
+      <progress id="plan-progress" max="6" value="0" aria-label="Daily plan completion"></progress>
+    </div>
+
+    <div class="plan-timeline">
+      <section class="plan-period" aria-labelledby="morning-heading">
+        <h3 id="morning-heading"><span class="plan-time-icon" aria-hidden="true">☀</span>Morning</h3>
+        <ol class="plan-activities" id="plan-morning"></ol>
+      </section>
+      <section class="plan-period" aria-labelledby="afternoon-heading">
+        <h3 id="afternoon-heading"><span class="plan-time-icon" aria-hidden="true">◷</span>Afternoon</h3>
+        <ol class="plan-activities" id="plan-afternoon"></ol>
+      </section>
+      <section class="plan-period" aria-labelledby="evening-heading">
+        <h3 id="evening-heading"><span class="plan-time-icon" aria-hidden="true">☾</span>Evening</h3>
+        <ol class="plan-activities" id="plan-evening"></ol>
+      </section>
+    </div>
+  </section>
+
+  <section class="panel dashboard-panel" aria-labelledby="dashboard-heading">
+    <h2 id="dashboard-heading">Your daily snapshot</h2>
+    <p class="dashboard-intro">Lifestyle charts reflect only the values you reported. Prediction history lasts for this page session.</p>
+
+    <div class="dashboard-section">
+      <h3>Reported hours per day</h3>
+      <div class="bar-chart" id="lifestyle-chart" aria-live="polite">
+        <p class="chart-empty">Submit the form to see your lifestyle snapshot.</p>
+      </div>
+      <p class="chart-caption" id="lifestyle-caption">Daily phone unlocks and perceived stress are shown separately from the model score.</p>
+      <div class="reported-facts" id="reported-facts"></div>
+    </div>
+
+    <div class="dashboard-section">
+      <h3>Prediction history</h3>
+      <div class="bar-chart prediction-chart" id="prediction-chart" aria-live="polite">
+        <p class="chart-empty">Predictions from this session will appear here.</p>
+      </div>
+    </div>
+
+    <div class="dashboard-section wellness-section">
+      <h3>General wellness ideas</h3>
+      <p class="chart-caption">Based on the habits you reported, not on the predicted score.</p>
+      <ul id="wellness-suggestions">
+        <li>Submit the form to see a few general, non-clinical ideas.</li>
+      </ul>
+    </div>
+
+    <div class="dashboard-section comparison-section">
+      <h3>Test-set model comparison</h3>
+      <p class="chart-caption">Held-out dataset metrics; these do not describe individual prediction certainty.</p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Model</th><th>MAE</th><th>RMSE</th><th>R²</th></tr>
+          </thead>
+          <tbody id="model-comparison-body">
+            <tr><td colspan="4">Loading model metrics…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 
 </main>
 
