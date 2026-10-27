@@ -116,8 +116,10 @@ body {
 
 /* =========================================================
    LAYOUT
-   The form occupies the left grid area while result and dashboard
-   stack on the right. Cards keep their natural content height.
+   Desktop: the form on the left spans the full height of the
+   right-hand column (result + dashboard), so both sides always
+   end on the same line. Nothing is sticky; everything scrolls
+   normally with the page.
    ========================================================= */
 .layout {
   max-width: var(--page-max);
@@ -127,7 +129,7 @@ body {
   grid-template-columns: minmax(0, 1.35fr) minmax(360px, 1fr);
   grid-auto-rows: auto;
   gap: var(--gap);
-  align-items: start;
+  align-items: stretch;
   position: relative;
   z-index: 1;
 }
@@ -143,7 +145,6 @@ body {
 .form-panel {
   grid-column: 1;
   grid-row: 1 / span 2;
-  align-self: start;
   display: flex;
   flex-direction: column;
   padding: 8px clamp(22px, 3vw, 44px) 32px;
@@ -401,13 +402,13 @@ input:invalid:not(:placeholder-shown):not(:focus) {
 .seg-btn[data-value="Very High"].active { background: var(--coral); border-color: var(--coral); }
 .seg-btn[data-value="High"].active { background: #C97C3B; border-color: #C97C3B; }
 
-/* footer / submit */
+/* footer / submit: always pinned to the bottom of the form card */
 .form-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-top: 0;
+  margin-top: auto;
   padding-top: 24px;
   border-top: 1px solid var(--line);
 }

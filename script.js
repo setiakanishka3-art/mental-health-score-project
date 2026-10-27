@@ -1,10 +1,14 @@
 (() => {
   "use strict";
 
-  const isLocalStaticServer =
-    window.location.port === "5500" &&
+  const isLocalPage =
+    window.location.protocol === "file:" ||
     ["localhost", "127.0.0.1"].includes(window.location.hostname);
-  const API_BASE = isLocalStaticServer ? "http://127.0.0.1:2200" : window.location.origin;
+  const isLocalStaticServer =
+    isLocalPage && window.location.port !== "2200";
+  const API_BASE = isLocalStaticServer
+    ? "http://127.0.0.1:2200"
+    : window.location.origin;
 
   const form = document.getElementById("predict-form");
   const submitBtn = document.getElementById("submit-btn");
@@ -562,7 +566,7 @@
     } catch (err) {
       renderError(
         "Can't reach the server",
-        `Couldn't connect to ${API_BASE}. Make sure the backend is running (uvicorn main:app --port 2200 --reload) and reachable from this page.`
+        `Couldn't connect to ${API_BASE}. Start the backend with "uvicorn main:app --host 127.0.0.1 --port 2200 --reload" and reload this page.`
       );
     } finally {
       setSubmitting(false);
